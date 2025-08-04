@@ -41,7 +41,11 @@ jobs:
 
       - name: Terraform Init & Validate
         run: |
-          terraform init -backend-config="key=${STATE_KEY}"
+          terraform init \
+            -backend-config="bucket=customer-feedback-terraform-state" \
+            -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
+            -backend-config="region=ap-south-1" \
+            -backend-config="dynamodb_table=terraform-locks"
           terraform validate
 
       - name: Run tests
@@ -68,5 +72,9 @@ jobs:
 
       - name: Terraform Apply
         run: |
-          terraform init -backend-config="key=${STATE_KEY}"
+          terraform init \
+            -backend-config="bucket=customer-feedback-terraform-state" \
+            -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
+            -backend-config="region=ap-south-1" \
+            -backend-config="dynamodb_table=terraform-locks"
           terraform apply -auto-approve -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
