@@ -79,4 +79,5 @@ jobs:
             -backend-config="region=ap-south-1" \
             -backend-config="dynamodb_table=terraform-locks" \
             -input=false -force-copy
+          terraform refresh -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
           terraform apply -auto-approve -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
