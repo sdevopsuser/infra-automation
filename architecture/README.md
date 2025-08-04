@@ -6,7 +6,7 @@ This document  describes the architecture for the Customer Feedback Platform, in
 ## Diagram
 See `architecture-diagram.png` (add your diagram here).
 
-## Components
+### Components
 - API Gateway: Receives feedback submissions
 - Lambda: Processes and analyzes feedback
 - DynamoDB: Stores feedback and analysis
