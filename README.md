@@ -20,10 +20,25 @@
 - Each environment (dev, prod, etc.) uses its own `terraform.tfvars` file and separate state file.
 - To deploy to a different environment, create a new tfvars file (e.g., `envs/prod/terraform.tfvars`) and use a separate backend/state configuration.
 
-## How to Deploy for a New Environment
-1. Copy `envs/dev/terraform.tfvars` to `envs/prod/terraform.tfvars` and update values as needed.
-2. Use Terraform workspaces or backend configuration to separate state files.
-3. Update the CI/CD pipeline to use the correct tfvars and workspace for the target environment.
+
+## How to Deploy (Environment-wise)
+
+### Deploy to Dev (default)
+1. **Just push your code to the `main` branch.**
+   - The GitHub Actions workflow will automatically deploy using `envs/dev/terraform.tfvars` and store state in `dev/terraform.tfstate` in S3.
+
+### Deploy to Prod
+1. **Go to your repository's Actions tab on GitHub.**
+2. Select the CI/CD workflow.
+3. Click the **"Run workflow"** button (top right).
+4. In the environment dropdown, select `prod`.
+5. Click **"Run workflow"**.
+   - The workflow will deploy using `envs/prod/terraform.tfvars` and store state in `prod/terraform.tfstate` in S3.
+
+**Note:**
+- Make sure `envs/prod/terraform.tfvars` exists and is updated with production values.
+- No manual changes are needed in the workflow file for each environment.
+- All state is managed in S3, so deployments are safe and isolated per environment.
 
 ## Outputs Example
 - API endpoint: https://your-api-id.execute-api.ap-south-1.amazonaws.com/dev/
