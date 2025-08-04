@@ -41,7 +41,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t analytics-dashboard:${{ github.sha }} ./path/to/dashboard
+          docker build -t analytics-dashboard:${{ github.sha }} ./dashboard
 
       - name: Tag Docker image
         run: |
