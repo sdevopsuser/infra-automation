@@ -1,5 +1,8 @@
 name: CI/CD Pipeline
 
+env:
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
 on:
   push:
     branches: [ main ]
@@ -34,7 +37,7 @@ jobs:
 
       - name: Log in to Amazon ECR
         run: |
-          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.ap-south-1.amazonaws.com
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com
 
       - name: Build Docker image
         run: |
@@ -42,13 +45,13 @@ jobs:
 
       - name: Tag Docker image
         run: |
-          docker tag analytics-dashboard:${{ github.sha }} <account-id>.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}
+          docker tag analytics-dashboard:${{ github.sha }} $AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}
 
       - name: Push Docker image
         run: |
-          docker push <account-id>.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}
 
       - name: Terraform Apply
         run: |
           terraform init
-          terraform apply -auto-approve -var="dashboard_image=<account-id>.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=envs/dev/terraform.tfvars
+          terraform apply -auto-approve -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=envs/dev/terraform.tfvars
