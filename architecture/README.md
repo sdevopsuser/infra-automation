@@ -4,7 +4,7 @@
 This document  describes the architecture for the Customer Feedback Platform, including AWS resources, data flow, and integration points.
 
 ## Diagram
-See `architecture-diagram.png` (add your diagram here).
+See `architecture-diagram.png` (add your diagram here). 
 
 ### Components
 - API Gateway: Receives feedback submissions
