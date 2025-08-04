@@ -41,13 +41,23 @@ jobs:
 
       - name: Terraform Init & Validate
         run: |
+          # Clean any local state that might interfere
+          rm -f .terraform/terraform.tfstate .terraform/terraform.tfstate.backup
+          
+          # Initialize with proper backend config
           terraform init \
             -backend-config="bucket=customer-feedback-terraform-state" \
             -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
             -backend-config="dynamodb_table=terraform-locks" \
             -input=false -force-copy
+          
+          # Validate configuration
           terraform validate
+          
+          # Show current state
+          echo "Current state resources:"
+          terraform state list || echo "No state or unable to list state"
 
       - name: Run tests
         run: |
@@ -73,11 +83,23 @@ jobs:
 
       - name: Terraform Apply
         run: |
+          # Ensure we have the latest state before proceeding
           terraform init \
             -backend-config="bucket=customer-feedback-terraform-state" \
             -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
             -backend-config="dynamodb_table=terraform-locks" \
             -input=false -force-copy
+          
+          # First import the ECR repository if it exists but isn't in the state
+          echo "Checking if ECR repository exists and needs importing..."
+          if aws ecr describe-repositories --repository-names analytics-dashboard --region ap-south-1 >/dev/null 2>&1; then
+            echo "ECR repository exists, attempting to import if not already in state..."
+            terraform import aws_ecr_repository.dashboard analytics-dashboard || echo "Import not needed or failed - continuing"
+          fi
+          
+          # Refresh state to ensure it matches reality
           terraform refresh -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
+          
+          # Plan and apply with proper locking using DynamoDB
           terraform apply -auto-approve -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
