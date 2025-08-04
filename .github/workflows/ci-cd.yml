@@ -6,10 +6,20 @@ env:
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment (dev or prod)'
+        required: false
+        default: 'dev'
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+      TFVARS_FILE: envs/${{ github.event.inputs.environment || 'dev' }}/terraform.tfvars
+      STATE_KEY: terraform-${{ github.event.inputs.environment || 'dev' }}.tfstate
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -23,11 +33,13 @@ jobs:
           pip install -r requirements.txt || true
       - name: Terraform Init & Validate
         run: |
-          terraform init
+          terraform init -backend-config="key=${STATE_KEY}"
           terraform validate
       - name: Run tests
         run: |
-          echo "Add test commands here"
+          echo "Running placeholder tests..."
+          # Add your test commands below
+          # Example: pytest tests/
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -53,5 +65,5 @@ jobs:
 
       - name: Terraform Apply
         run: |
-          terraform init
-          terraform apply -auto-approve -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=envs/dev/terraform.tfvars
+          terraform init -backend-config="key=${STATE_KEY}"
+          terraform apply -auto-approve -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}

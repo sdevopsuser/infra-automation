@@ -1,3 +1,13 @@
+terraform {
+  backend "s3" {
+    bucket = "your-terraform-state-bucket"
+    key    = "state/${terraform.workspace}/terraform.tfstate"
+    region = "ap-south-1"
+  }
+}
+resource "aws_ecr_repository" "dashboard" {
+  name = "analytics-dashboard"
+}
 output "api_endpoint" {
   description = "The endpoint URL of the deployed API Gateway."
   value       = module.lambda_api_gateway.api_endpoint
