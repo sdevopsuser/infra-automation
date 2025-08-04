@@ -1,0 +1,52 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt || true
+      - name: Terraform Init & Validate
+        run: |
+          terraform init
+          terraform validate
+      - name: Run tests
+        run: |
+          echo "Add test commands here"
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.ap-south-1.amazonaws.com
+
+      - name: Build Docker image
+        run: |
+          docker build -t analytics-dashboard:${{ github.sha }} ./path/to/dashboard
+
+      - name: Tag Docker image
+        run: |
+          docker tag analytics-dashboard:${{ github.sha }} <account-id>.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}
+
+      - name: Push Docker image
+        run: |
+          docker push <account-id>.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}
+
+      - name: Terraform Apply
+        run: |
+          terraform init
+          terraform apply -auto-approve -var="dashboard_image=<account-id>.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}"

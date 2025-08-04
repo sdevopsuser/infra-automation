@@ -1,0 +1,9 @@
+environment         = "prod"
+lambda_package      = "lambda.zip"
+lambda_role_arn     = "arn:aws:iam::123456789012:role/lambda-exec-role"
+lambda_memory_size  = 256
+lambda_timeout      = 20
+api_gateway_stage   = "prod"
+dashboard_image     = "your-dashboard-image:latest"
+subnet_ids          = ["subnet-xxxxxxxx", "subnet-yyyyyyyy"]
+vpc_id              = "vpc-xxxxxxxx"

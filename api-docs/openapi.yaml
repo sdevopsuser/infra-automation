@@ -1,0 +1,25 @@
+openapi: 3.0.1
+info:
+  title: Customer Feedback API
+  version: 1.0.0
+description: API for submitting and managing customer feedback.
+paths:
+  /feedback:
+    post:
+      summary: Submit feedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                channel:
+                  type: string
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Feedback accepted
