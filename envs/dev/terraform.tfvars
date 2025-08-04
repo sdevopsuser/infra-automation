@@ -3,7 +3,6 @@ lambda_package      = "lambda_package/lambda_payload.zip"
 lambda_memory_size  = 128
 lambda_timeout      = 10
 api_gateway_stage   = "dev"
-dashboard_image     = "${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:latest"
 subnet_ids = [
   "subnet-4743010b",
   "subnet-91dc48ea"
