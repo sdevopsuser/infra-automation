@@ -45,7 +45,8 @@ jobs:
             -backend-config="bucket=customer-feedback-terraform-state" \
             -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=terraform-locks"
+            -backend-config="dynamodb_table=terraform-locks" \
+            -input=false -force-copy
           terraform validate
 
       - name: Run tests
@@ -76,5 +77,6 @@ jobs:
             -backend-config="bucket=customer-feedback-terraform-state" \
             -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=terraform-locks"
+            -backend-config="dynamodb_table=terraform-locks" \
+            -input=false -force-copy
           terraform apply -auto-approve -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
