@@ -1,5 +1,14 @@
 resource "aws_ecr_repository" "dashboard" {
-  name = "analytics-dashboard"
+  name         = "analytics-dashboard"
+  force_delete = true  # Allow Terraform to delete and recreate if needed
+
+  lifecycle {
+    prevent_destroy = false  # Allow changes to this resource
+    ignore_changes = [
+      # Ignore changes to tags that might be set outside Terraform
+      tags,
+    ]
+  }
 }
 output "api_endpoint" {
   description = "The endpoint URL of the deployed API Gateway."
