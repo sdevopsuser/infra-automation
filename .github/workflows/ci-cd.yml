@@ -138,38 +138,18 @@ jobs:
 
       - name: Terraform Apply
         run: |
-          # Remove any stale terraform files
-          rm -rf .terraform/
-          rm -f terraform.tfstate*
-          
-          # Always clear any potential stale locks first
-          echo "Clearing any potential stale locks..."
-          aws dynamodb delete-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}' || echo "No lock to clear"
-          
-          # Ensure we have the latest state before proceeding
-          terraform init \
-            -backend-config="bucket=customer-feedback-terraform-state" \
-            -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
-            -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=terraform-locks" \
-            -input=false -force-copy -reconfigure
-          
           # Set dashboard image in environment variable and verify it's set
           export TF_VAR_dashboard_image="$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}"
           echo "Using dashboard image: $TF_VAR_dashboard_image"
-          
           # Create tfvars files with the image variable explicitly set
           echo "dashboard_image = \"$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}\"" > temp_vars.tfvars
           echo "Created temp_vars.tfvars with content:"
           cat temp_vars.tfvars
-          
           # Generate terraform.auto.tfvars as well (automatically loaded)
           echo "dashboard_image = \"$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}\"" > terraform.auto.tfvars
-          
           # Run a plan with paranoid variable handling
           echo "Running plan..."
           terraform plan -lock=false -input=false -var-file=${TFVARS_FILE} -var-file=temp_vars.tfvars -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -out=tfplan
-          
           # Now run apply using the plan file to ensure no prompting
           echo "Running apply..."
           if terraform apply -auto-approve -input=false tfplan; then
