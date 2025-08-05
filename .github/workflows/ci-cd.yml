@@ -99,32 +99,7 @@ jobs:
         run: |
           docker push $AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}
           
-      - name: Check and force-unlock state if needed
-        run: |
-          # Check if state is locked and force unlock if necessary
-          echo "Checking for any stale state locks..."
-          terraform init \
-            -backend-config="bucket=customer-feedback-terraform-state" \
-            -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
-            -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=terraform-locks" \
-            -input=false -force-copy
-            
-          # First try to detect a lock
-          LOCK_ID=$(aws dynamodb get-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}' --query "Item.LockID.S" --output text 2>/dev/null || echo "")
-          
-          if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "null" ] && [ ! -z "$LOCK_ID" ]; then
-            echo "Found a lock with ID: $LOCK_ID - attempting to force unlock..."
-            LOCK_ID_VALUE=$(aws dynamodb get-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}' --query "Item.ID.S" --output text 2>/dev/null || echo "")
-            if [ ! -z "$LOCK_ID_VALUE" ]; then
-              terraform force-unlock -force "$LOCK_ID_VALUE"
-            else
-              echo "Could not get lock ID value, manually clearing lock from DynamoDB..."
-              aws dynamodb delete-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}'
-            fi
-          else
-            echo "No stale lock detected, continuing normally"
-          fi
+
           
       # We need to check if the ECR repository exists in Terraform state and import it if needed
       - name: Check and import ECR repository if needed
