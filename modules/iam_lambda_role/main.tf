@@ -36,10 +36,6 @@ resource "aws_iam_policy" "dynamodb_putitem" {
   })
 }
 
-  name       = "lambda-dynamodb-putitem-attach-${var.environment}"
-  roles      = [aws_iam_role.lambda_exec_role.name]
-  policy_arn = aws_iam_policy.dynamodb_putitem.arn
-}
 resource "aws_iam_policy_attachment" "lambda_dynamodb_putitem" {
   role       = aws_iam_role.lambda_exec_role.name
   policy_arn = aws_iam_policy.dynamodb_putitem.arn
