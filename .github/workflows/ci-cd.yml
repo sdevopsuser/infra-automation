@@ -65,24 +65,24 @@ jobs:
           # Add your test commands below
           # Example: pytest tests/
 
-      - name: Check and prepare ECR repository
+      - name: Check, create, and import ECR repository if needed
         run: |
-          # Check if ECR repository exists
-          echo "Checking if ECR repository exists..."
+          echo "Checking if ECR repository exists in AWS and Terraform state..."
           if ! aws ecr describe-repositories --repository-names analytics-dashboard --region ap-south-1 >/dev/null 2>&1; then
-            echo "ECR repository does not exist, creating it manually..."
+            echo "ECR repository does not exist, creating it..."
             aws ecr create-repository --repository-name analytics-dashboard --region ap-south-1
-            # Add a delay to ensure the repository is fully created and available
             echo "Waiting 10 seconds for repository to become fully available..."
             sleep 10
           else
-            echo "ECR repository already exists"
+            echo "ECR repository already exists in AWS."
           fi
-          
-          # Verify that the repository is accessible
-          echo "Verifying repository access..."
-          aws ecr describe-repositories --repository-names analytics-dashboard --region ap-south-1
-          
+          # Check if ECR is in Terraform state, import if not
+          if ! terraform state list -var-file=${TFVARS_FILE} | grep -q "aws_ecr_repository.dashboard"; then
+            echo "ECR repository not in Terraform state, importing..."
+            terraform import -var-file=${TFVARS_FILE} aws_ecr_repository.dashboard analytics-dashboard || echo "Import failed or not needed."
+          else
+            echo "ECR repository already in Terraform state."
+          fi
       - name: Log in to Amazon ECR
         run: |
           aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com
@@ -101,40 +101,7 @@ jobs:
           
 
           
-      # We need to check if the ECR repository exists in Terraform state and import it if needed
-      - name: Check and import ECR repository if needed
-        run: |
-          echo "Checking if ECR repository exists and importing it if needed..."
-          
-          # First ensure we have initialized Terraform
-          terraform init \
-            -backend-config="bucket=customer-feedback-terraform-state" \
-            -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
-            -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=terraform-locks" \
-            -input=false -force-copy -reconfigure
-          
-          # Check if the ECR repository exists in AWS first
-          echo "Verifying repository exists in AWS..."
-          if ! aws ecr describe-repositories --repository-names analytics-dashboard --region ap-south-1 >/dev/null 2>&1; then
-            echo "WARNING: ECR repository doesn't exist in AWS yet, will be created during apply"
-            exit 0 # Exit successfully, as we'll create it during apply
-          fi
-          
-          # Check if the repository is already in state (with variables)
-          if ! terraform state list -var-file=${TFVARS_FILE} | grep -q "aws_ecr_repository.dashboard"; then
-            echo "ECR repository not in Terraform state, importing it..."
-            # Try to import the repository into state (with variables)
-            if terraform import -var-file=${TFVARS_FILE} aws_ecr_repository.dashboard analytics-dashboard; then
-              echo "Import successful"
-            else 
-              echo "Import failed, but repository exists. Will attempt to create during apply."
-              # Generate a state conflict error report to help debug
-              terraform plan -input=false -var-file=${TFVARS_FILE} -refresh-only || true
-            fi
-          else
-            echo "ECR repository already in Terraform state"
-          fi
+
 
       - name: Terraform Apply
         run: |
