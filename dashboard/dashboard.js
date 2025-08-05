@@ -26,10 +26,11 @@ async function fetchAnalytics() {
     // Replace with your deployed API endpoint
     const response = await fetch('/analytics/summary');
     if (!response.ok) throw new Error('API error');
-    const data = await response.json();
-    // Example expected data: { labels: [...], counts: [...] }
+    const result = await response.json();
+    // Parse the nested JSON in body
+    const data = typeof result.body === 'string' ? JSON.parse(result.body) : result.body;
     trendChart.data.labels = data.labels;
-    trendChart.data.datasets[0].data = data.counts;
+    trendChart.data.datasets[0].data = data.trend;
     trendChart.update();
   } catch (err) {
     console.error('Failed to fetch analytics:', err);
