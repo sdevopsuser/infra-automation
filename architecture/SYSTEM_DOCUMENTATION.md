@@ -6,7 +6,7 @@ This document describes the architecture, components, and deployment of the Cust
 ---
 
 ## Architecture Diagram
-
+ 
 > See `architecture/architecture-diagram.png` for a visual overview of the system. (Add your diagram here.)
 
 ---
