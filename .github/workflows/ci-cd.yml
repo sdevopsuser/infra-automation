@@ -91,6 +91,27 @@ jobs:
           else
             echo "ECR repository already exists"
           fi
+          
+      - name: Check and force-unlock state if needed
+        run: |
+          # Check if state is locked and force unlock if necessary
+          echo "Checking for any stale state locks..."
+          terraform init \
+            -backend-config="bucket=customer-feedback-terraform-state" \
+            -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
+            -backend-config="region=ap-south-1" \
+            -backend-config="dynamodb_table=terraform-locks" \
+            -input=false -force-copy
+            
+          # First try to detect a lock
+          LOCK_ID=$(aws dynamodb get-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}' --query "Item.LockID.S" --output text)
+          
+          if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "null" ]; then
+            echo "Found a lock with ID: $LOCK_ID - attempting to force unlock..."
+            terraform force-unlock -force $(aws dynamodb get-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}' --query "Item.ID.S" --output text)
+          else
+            echo "No stale lock detected, continuing normally"
+          fi
 
       - name: Terraform Apply
         run: |
@@ -108,8 +129,9 @@ jobs:
           
           # Run a targeted plan excluding ECR to avoid errors
           echo "Running targeted plan..."
-          terraform plan -target="module.lambda_api_gateway" -target="module.api_gateway_stage" -target="module.dynamodb_feedback" -target="module.event_alerting" -target="module.cloudwatch_monitoring" -target="module.cicd_pipeline" -target="module.analytics_dashboard" -target="module.iam_lambda_role" -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
+          terraform plan -lock=false -target="module.lambda_api_gateway" -target="module.api_gateway_stage" -target="module.dynamodb_feedback" -target="module.event_alerting" -target="module.cloudwatch_monitoring" -target="module.cicd_pipeline" -target="module.analytics_dashboard" -target="module.iam_lambda_role" -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
           
-          # Now run the apply with all required variables
+          # Now run the apply with all required variables, retry with lock disabled if it fails
           echo "Running full apply..."
-          terraform apply -auto-approve -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
+          terraform apply -auto-approve -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE} || \
+          terraform apply -auto-approve -lock=false -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
