@@ -35,6 +35,10 @@ resource "aws_lambda_permission" "apigw_analytics_lambda" {
   function_name = aws_lambda_function.analytics_summary.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.feedback_api.execution_arn}/*/*"
+
+  lifecycle {
+    ignore_changes = [statement_id]
+  }
 }
 variable "environment" {}
 variable "lambda_package" {}
