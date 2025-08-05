@@ -1,14 +1,8 @@
+# ECR repository is now managed by Terraform
+# Since the repository already exists, we need to import it into state
 resource "aws_ecr_repository" "dashboard" {
-  name         = "analytics-dashboard"
-  force_delete = true  # Allow Terraform to delete and recreate if needed
-
-  lifecycle {
-    prevent_destroy = false  # Allow changes to this resource
-    ignore_changes = [
-      # Ignore changes to tags that might be set outside Terraform
-      tags,
-    ]
-  }
+  name        = "analytics-dashboard"
+  force_delete = true  # This allows deletion even if it contains images
 }
 output "api_endpoint" {
   description = "The endpoint URL of the deployed API Gateway."

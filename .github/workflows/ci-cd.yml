@@ -65,6 +65,17 @@ jobs:
           # Add your test commands below
           # Example: pytest tests/
 
+      - name: Check and prepare ECR repository
+        run: |
+          # Check if ECR repository exists
+          echo "Checking if ECR repository exists..."
+          if ! aws ecr describe-repositories --repository-names analytics-dashboard --region ap-south-1 >/dev/null 2>&1; then
+            echo "ECR repository does not exist, creating it manually..."
+            aws ecr create-repository --repository-name analytics-dashboard --region ap-south-1
+          else
+            echo "ECR repository already exists"
+          fi
+          
       - name: Log in to Amazon ECR
         run: |
           aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com
@@ -80,17 +91,6 @@ jobs:
       - name: Push Docker image
         run: |
           docker push $AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}
-
-      - name: Check and prepare ECR repository
-        run: |
-          # Check if ECR repository exists
-          echo "Checking if ECR repository exists..."
-          if ! aws ecr describe-repositories --repository-names analytics-dashboard --region ap-south-1 >/dev/null 2>&1; then
-            echo "ECR repository does not exist, creating it manually..."
-            aws ecr create-repository --repository-name analytics-dashboard --region ap-south-1
-          else
-            echo "ECR repository already exists"
-          fi
           
       - name: Check and force-unlock state if needed
         run: |
@@ -119,13 +119,27 @@ jobs:
             echo "No stale lock detected, continuing normally"
           fi
           
-      # We don't need to import the ECR repository since we're using a data source
-      - name: Verify ECR Repository for Data Source
+      # We need to check if the ECR repository exists in Terraform state and import it if needed
+      - name: Check and import ECR repository if needed
         run: |
-          echo "Verifying that ECR repository exists for data source..."
-          # Just verify the repository exists so the data source can find it
-          aws ecr describe-repositories --repository-names analytics-dashboard --region ap-south-1
-          echo "ECR repository verification successful!"
+          echo "Checking if ECR repository exists and importing it if needed..."
+          
+          # First ensure we have initialized Terraform
+          terraform init \
+            -backend-config="bucket=customer-feedback-terraform-state" \
+            -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
+            -backend-config="region=ap-south-1" \
+            -backend-config="dynamodb_table=terraform-locks" \
+            -input=false -force-copy -reconfigure
+          
+          # Check if the repository is already in state
+          if ! terraform state list | grep -q "aws_ecr_repository.dashboard"; then
+            echo "ECR repository not in Terraform state, importing it..."
+            # Try to import the repository into state
+            terraform import aws_ecr_repository.dashboard analytics-dashboard || echo "Import failed, will be created during apply"
+          else
+            echo "ECR repository already in Terraform state"
+          fi
 
       - name: Terraform Apply
         run: |
