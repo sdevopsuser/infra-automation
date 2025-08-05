@@ -45,7 +45,7 @@ resource "aws_iam_policy_attachment" "lambda_dynamodb_putitem" {
 
 # Allow Lambda to scan the feedback DynamoDB table
 resource "aws_iam_policy" "dynamodb_scan" {
-  name        = "lambda-dynamodb-scan-${var.environment}"
+  name        = "lambda-dynamodb-scan1-${var.environment}"
   description = "Allow Lambda to scan the feedback DynamoDB table"
   policy      = jsonencode({
     Version = "2012-10-17",
