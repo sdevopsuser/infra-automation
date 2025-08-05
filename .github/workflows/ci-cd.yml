@@ -53,6 +53,9 @@ jobs:
           echo "Current state resources:"
           terraform state list || echo "No state or unable to list state"
 
+      - name: Terraform Refresh
+        run: terraform refresh -input=false -var-file=${TFVARS_FILE}
+
       - name: Run tests
         run: |
           echo "Running placeholder tests..."
