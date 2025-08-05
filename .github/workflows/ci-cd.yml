@@ -45,9 +45,13 @@ jobs:
             -backend-config="bucket=customer-feedback-terraform-state" \
             -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=terraform-locks" \
+            -backend-config="lock_table=terraform-locks" \
             -input=false -force-copy
           terraform validate
+          
+          # Show current state
+          echo "Current state resources:"
+          terraform state list || echo "No state or unable to list state"
 
       - name: Run tests
         run: |
@@ -87,8 +91,7 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push $AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}
-          
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}       
 
           
 
