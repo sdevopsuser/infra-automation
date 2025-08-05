@@ -89,15 +89,6 @@ jobs:
           else
             echo "Lambda already in Terraform state."
           fi
-      - name: Check and import analytics summary route if needed
-        run: |
-          echo "Checking if analytics_summary_route is in Terraform state..."
-          if ! terraform state list -var-file=${TFVARS_FILE} | grep -q "module.lambda_api_gateway.aws_apigatewayv2_route.analytics_summary_route"; then
-            echo "Route not in Terraform state, importing..."
-            terraform import -var-file=${TFVARS_FILE} module.lambda_api_gateway.aws_apigatewayv2_route.analytics_summary_route 3v1bdvt2m4/POST /analytics/summary || echo "Import failed or not needed."
-          else
-            echo "Route already in Terraform state."
-          fi
       - name: Log in to Amazon ECR
         run: |
           aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com
