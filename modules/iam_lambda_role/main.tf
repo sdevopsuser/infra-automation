@@ -37,10 +37,38 @@ resource "aws_iam_policy" "dynamodb_putitem" {
   })
 }
 
+  name       = "lambda-dynamodb-putitem-attach-${var.environment}"
+  roles      = [aws_iam_role.lambda_exec_role.name]
+  policy_arn = aws_iam_policy.dynamodb_putitem.arn
+}
 resource "aws_iam_policy_attachment" "lambda_dynamodb_putitem" {
   name       = "lambda-dynamodb-putitem-attach-${var.environment}"
   roles      = [aws_iam_role.lambda_exec_role.name]
   policy_arn = aws_iam_policy.dynamodb_putitem.arn
+}
+
+# Allow Lambda to scan the feedback DynamoDB table
+resource "aws_iam_policy" "dynamodb_scan" {
+  name        = "lambda-dynamodb-scan-${var.environment}"
+  description = "Allow Lambda to scan the feedback DynamoDB table"
+  policy      = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "dynamodb:Scan"
+        ],
+        Resource = "arn:aws:dynamodb:ap-south-1:881168157995:table/customer-feedback-${var.environment}"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy_attachment" "lambda_dynamodb_scan" {
+  name       = "lambda-dynamodb-scan-attach-${var.environment}"
+  roles      = [aws_iam_role.lambda_exec_role.name]
+  policy_arn = aws_iam_policy.dynamodb_scan.arn
 }
 resource "aws_iam_role" "lambda_exec_role" {
   name = "lambda-exec-role-${var.environment}"
