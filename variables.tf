@@ -38,6 +38,7 @@ variable "api_gateway_stage" {
 variable "dashboard_image" {
   description = "Container image for the analytics dashboard"
   type        = string
+  default     = "dummy-value-replaced-by-ci-cd"  # This default is just to prevent prompting
 }
 
 variable "subnet_ids" {
