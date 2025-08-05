@@ -15,3 +15,13 @@ output "api_id" {
   description = "API Gateway ID"
   value       = aws_apigatewayv2_api.feedback_api.id
 }
+
+output "analytics_summary_lambda_function_name" {
+  description = "Analytics summary Lambda function name"
+  value       = aws_lambda_function.analytics_summary.function_name
+}
+
+output "analytics_summary_lambda_function_arn" {
+  description = "Analytics summary Lambda function ARN"
+  value       = aws_lambda_function.analytics_summary.arn
+}

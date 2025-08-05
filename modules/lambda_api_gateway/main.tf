@@ -1,3 +1,41 @@
+resource "aws_lambda_function" "analytics_summary" {
+  function_name    = "analytics-summary-${var.environment}"
+  filename         = var.analytics_lambda_package
+  handler          = var.analytics_lambda_handler
+  runtime          = var.lambda_runtime
+  role             = var.lambda_role_arn
+  memory_size      = var.lambda_memory_size
+  timeout          = var.lambda_timeout
+  source_code_hash = filebase64sha256(var.analytics_lambda_package)
+  environment {
+    variables = {
+      ENVIRONMENT = var.environment
+      DYNAMODB_TABLE_NAME = var.dynamodb_table_name
+    }
+  }
+}
+
+resource "aws_apigatewayv2_integration" "analytics_lambda_integration" {
+  api_id                 = aws_apigatewayv2_api.feedback_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.analytics_summary.invoke_arn
+  integration_method     = "GET"
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "analytics_summary_route" {
+  api_id    = aws_apigatewayv2_api.feedback_api.id
+  route_key = "GET /analytics/summary"
+  target    = "integrations/${aws_apigatewayv2_integration.analytics_lambda_integration.id}"
+}
+
+resource "aws_lambda_permission" "apigw_analytics_lambda" {
+  statement_id  = "AllowAPIGatewayInvokeAnalytics"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.analytics_summary.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.feedback_api.execution_arn}/*/*"
+}
 variable "environment" {}
 variable "lambda_package" {}
 variable "lambda_role_arn" {}

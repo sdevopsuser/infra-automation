@@ -1,2 +1,24 @@
-<h1>Analytics Dashboard Placeholder</h1>
-<p>This is a placeholder for your analytics dashboard application.</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Customer Feedback Analytics Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Customer Feedback Analytics</h1>
+  <div id="summary">
+    <h2>Summary</h2>
+    <p>Total Feedback: <span id="total-feedback">123</span></p>
+    <p>Positive: <span id="positive">80</span></p>
+    <p>Neutral: <span id="neutral">30</span></p>
+    <p>Negative: <span id="negative">13</span></p>
+  </div>
+  <div id="chart">
+    <h2>Feedback Trend</h2>
+    <canvas id="trendChart" width="400" height="200"></canvas>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

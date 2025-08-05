@@ -27,6 +27,8 @@ module "lambda_api_gateway" {
   environment         = var.environment
   dynamodb_table_name = module.dynamodb_feedback.dynamodb_table_name
   sns_topic_arn       = module.event_alerting.sns_topic_arn
+  analytics_lambda_package = "lambda_package/analytics_summary.zip" # You must zip analytics_summary.py for deployment
+  analytics_lambda_handler = "analytics_summary.lambda_handler"
 }
 module "api_gateway_stage" {
   source            = "./modules/api_gateway_stage"
