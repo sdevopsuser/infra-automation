@@ -156,7 +156,7 @@ resource "aws_ecs_service" "dashboard" {
   network_configuration {
     subnets         = var.subnet_ids
     security_groups = [aws_security_group.dashboard.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
   load_balancer {
     target_group_arn = aws_lb_target_group.dashboard.arn
