@@ -138,7 +138,7 @@ jobs:
             -backend-config="region=ap-south-1" \
             -backend-config="dynamodb_table=terraform-locks" \
             -input=false -force-copy -reconfigure
-            
+          
           # Check if the ECR repository exists in AWS first
           echo "Verifying repository exists in AWS..."
           if ! aws ecr describe-repositories --repository-names analytics-dashboard --region ap-south-1 >/dev/null 2>&1; then
@@ -146,16 +146,16 @@ jobs:
             exit 0 # Exit successfully, as we'll create it during apply
           fi
           
-          # Check if the repository is already in state
-          if ! terraform state list | grep -q "aws_ecr_repository.dashboard"; then
+          # Check if the repository is already in state (with variables)
+          if ! terraform state list -var-file=${TFVARS_FILE} | grep -q "aws_ecr_repository.dashboard"; then
             echo "ECR repository not in Terraform state, importing it..."
-            # Try to import the repository into state
-            if terraform import -input=false aws_ecr_repository.dashboard analytics-dashboard; then
+            # Try to import the repository into state (with variables)
+            if terraform import -var-file=${TFVARS_FILE} aws_ecr_repository.dashboard analytics-dashboard; then
               echo "Import successful"
             else 
               echo "Import failed, but repository exists. Will attempt to create during apply."
               # Generate a state conflict error report to help debug
-              terraform plan -input=false -refresh-only || true
+              terraform plan -input=false -var-file=${TFVARS_FILE} -refresh-only || true
             fi
           else
             echo "ECR repository already in Terraform state"

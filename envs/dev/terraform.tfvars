@@ -8,3 +8,4 @@ subnet_ids = [
   "subnet-91dc48ea"
 ]
 vpc_id              = "vpc-836e9ae8"
+dashboard_image     = "dev-dashboard-image:latest"
