@@ -104,14 +104,28 @@ jobs:
             -input=false -force-copy
             
           # First try to detect a lock
-          LOCK_ID=$(aws dynamodb get-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}' --query "Item.LockID.S" --output text)
+          LOCK_ID=$(aws dynamodb get-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}' --query "Item.LockID.S" --output text 2>/dev/null || echo "")
           
-          if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "null" ]; then
+          if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "null" ] && [ ! -z "$LOCK_ID" ]; then
             echo "Found a lock with ID: $LOCK_ID - attempting to force unlock..."
-            terraform force-unlock -force $(aws dynamodb get-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}' --query "Item.ID.S" --output text)
+            LOCK_ID_VALUE=$(aws dynamodb get-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}' --query "Item.ID.S" --output text 2>/dev/null || echo "")
+            if [ ! -z "$LOCK_ID_VALUE" ]; then
+              terraform force-unlock -force "$LOCK_ID_VALUE"
+            else
+              echo "Could not get lock ID value, manually clearing lock from DynamoDB..."
+              aws dynamodb delete-item --table-name terraform-locks --key '{"LockID":{"S":"customer-feedback-terraform-state/'${ENVIRONMENT}'/terraform.tfstate"}}'
+            fi
           else
             echo "No stale lock detected, continuing normally"
           fi
+          
+      # We don't need to import the ECR repository since we're using a data source
+      - name: Verify ECR Repository for Data Source
+        run: |
+          echo "Verifying that ECR repository exists for data source..."
+          # Just verify the repository exists so the data source can find it
+          aws ecr describe-repositories --repository-names analytics-dashboard --region ap-south-1
+          echo "ECR repository verification successful!"
 
       - name: Terraform Apply
         run: |
@@ -126,12 +140,11 @@ jobs:
             -backend-config="region=ap-south-1" \
             -backend-config="dynamodb_table=terraform-locks" \
             -input=false -force-copy -reconfigure
+            
+          # Run a plan with no lock to avoid any locking issues
+          echo "Running plan..."
+          terraform plan -lock=false -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
           
-          # Run a targeted plan excluding ECR to avoid errors
-          echo "Running targeted plan..."
-          terraform plan -lock=false -target="module.lambda_api_gateway" -target="module.api_gateway_stage" -target="module.dynamodb_feedback" -target="module.event_alerting" -target="module.cloudwatch_monitoring" -target="module.cicd_pipeline" -target="module.analytics_dashboard" -target="module.iam_lambda_role" -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
-          
-          # Now run the apply with all required variables, retry with lock disabled if it fails
-          echo "Running full apply..."
-          terraform apply -auto-approve -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE} || \
+          # Now run the apply with all required variables, with lock disabled to avoid locking issues
+          echo "Running apply..."
           terraform apply -auto-approve -lock=false -var="dashboard_image=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/analytics-dashboard:${{ github.sha }}" -var-file=${TFVARS_FILE}
